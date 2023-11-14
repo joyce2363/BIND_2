@@ -2,7 +2,7 @@ import numpy as np
 import scipy.sparse as sp
 import torch
 import os
-import dgl
+# import dgl
 import torch
 import random
 import numpy as np
@@ -86,7 +86,7 @@ def load_income(dataset, sens_attr="race", predict_attr="income", path="../data/
     idx_val = torch.LongTensor(idx_val)
     idx_test = torch.LongTensor(idx_test)
 
-    return adj, features, labels, idx_train, idx_val, idx_test, sens
+    return adj, features, labels, idx_train, idx_val, idx_test, sens.to(torch.device('cuda'))
 
 
 def load_pokec_renewed(dataset, label_number=1000):  # 1000
@@ -101,7 +101,7 @@ def load_pokec_renewed(dataset, label_number=1000):  # 1000
         features = np.load('../data/pokec_dataset/region_job_2_2_features.npy')
         labels = np.load('../data/pokec_dataset/region_job_2_2_labels.npy')
         sens = np.load('../data/pokec_dataset/region_job_2_2_sens.npy')
-
+    # sens = sens.cuda()
     adj = sp.coo_matrix((np.ones(edges.shape[0]), (edges[:, 0], edges[:, 1])),
                         shape=(labels.shape[0], labels.shape[0]),
                         dtype=np.float32)
@@ -129,7 +129,7 @@ def load_pokec_renewed(dataset, label_number=1000):  # 1000
     idx_val = torch.LongTensor(idx_val)
     idx_test = torch.LongTensor(idx_test)
 
-    return adj, features, labels, idx_train, idx_val, idx_test, sens
+    return adj, features, labels, idx_train, idx_val, idx_test.cuda(), sens.cuda()
 
 
 def load_bail(dataset, sens_attr="WHITE", predict_attr="RECID", path="../data/bail/", label_number=1000):
@@ -179,7 +179,7 @@ def load_bail(dataset, sens_attr="WHITE", predict_attr="RECID", path="../data/ba
     idx_val = torch.LongTensor(idx_val)
     idx_test = torch.LongTensor(idx_test)
 
-    return adj, features, labels, idx_train, idx_val, idx_test, sens
+    return adj, features, labels, idx_train, idx_val, idx_test, sens.to(torch.device('cuda'))
 
 
 def normalize(mx):

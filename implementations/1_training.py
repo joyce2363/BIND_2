@@ -7,14 +7,14 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-from implementations.utils import load_bail, load_income, load_pokec_renewed
-from implementations.GNNs import GCN
+from utils import load_bail, load_income, load_pokec_renewed
+from GNNs import GCN
 from scipy.stats import wasserstein_distance
 from tqdm import tqdm
 import warnings
 warnings.filterwarnings('ignore')
-import ctypes
-ctypes.cdll.LoadLibrary('caffe2_nvrtc.dll')
+# import ctypes
+# ctypes.cdll.LoadLibrary('caffe2_nvrtc.dll')
 
 # Training settings
 parser = argparse.ArgumentParser()
@@ -22,8 +22,8 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='Disables CUDA training.')
 parser.add_argument('--fastmode', action='store_true', default=False,
                     help='Validate during training pass.')
-parser.add_argument('--dataset', type=str, default="income", help='One dataset from income, bail, pokec1, and pokec2.')
-parser.add_argument('--seed', type=int, default=10, help='Random seed.')
+parser.add_argument('--dataset', type=str, default="bail", help='One dataset from income, bail, pokec1, and pokec2.')
+parser.add_argument('--seed', type=int, default=1, help='Random seed.')
 parser.add_argument('--epochs', type=int, default=1000,
                     help='Number of epochs to train.')
 parser.add_argument('--lr', type=float, default=0.001,
@@ -125,6 +125,7 @@ def tst():
 
     print("*****************  Cost  ********************")
     print("SP cost:")
+    # sens = sens.cuda()
     idx_sens_test = sens[idx_test]
     idx_output_test = output[idx_test]
     print(wasserstein_distance(idx_output_test[idx_sens_test==0].squeeze().cpu().detach().numpy(), idx_output_test[idx_sens_test==1].squeeze().cpu().detach().numpy()))
@@ -136,7 +137,7 @@ def tst():
     print("**********************************************")
 
     parity, equality = fair_metric(preds[idx_test].cpu().numpy(), labels[idx_test].cpu().numpy(),
-                                   sens[idx_test].numpy())
+                                   sens[idx_test].cpu().numpy())
 
     print("Test set results:",
           "loss= {:.4f}".format(loss_test.item()),

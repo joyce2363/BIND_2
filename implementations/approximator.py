@@ -110,7 +110,7 @@ def wasserstein_cost_loss(output, sens):
 
     return wasserstein(group_0_diff, group_1_diff, 'cuda')
 
-def grad_z_graph_faircost(adj, features, idx, labels, sens, model, gpu=-1):
+def grad_z_graph_faircost(adj, features, idx, labels, sens, model, gpu=1):
     model.eval()
     # initialize
     if gpu >= 0:
@@ -140,7 +140,7 @@ def grad_z_graph_faircost(adj, features, idx, labels, sens, model, gpu=-1):
     return list(grad(loss, params, create_graph=False))
 
 
-def s_test_graph_cost(adj, features, idx_train, idx_test, labels, sens, model, gpu=-1, damp=0.03, scale=60,
+def s_test_graph_cost(adj, features, idx_train, idx_test, labels, sens, model, gpu=1, damp=0.03, scale=60,
            recursion_depth=5000):
     # For Pokec2 with GCN:
     # setting scale as 50 to achieve better estimated Pearson correlation;
@@ -168,7 +168,7 @@ def s_test_graph_cost(adj, features, idx_train, idx_test, labels, sens, model, g
     h_estimate_cost = [b / scale for b in h_estimate_cost]
     return h_estimate_cost
 
-def grad_z_graph(adj, features, idx, labels, model, gpu=-1):
+def grad_z_graph(adj, features, idx, labels, model, gpu=1):
 
     model.eval()
     if gpu >= 0:

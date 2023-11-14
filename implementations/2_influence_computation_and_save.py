@@ -1,6 +1,6 @@
-from implementations.utils import load_bail, load_income, load_pokec_renewed
+from utils import load_bail, load_income, load_pokec_renewed
 from numpy import *
-from implementations.approximator import grad_z_graph, cal_influence_graph, s_test_graph_cost, cal_influence_graph_nodal
+from approximator import grad_z_graph, cal_influence_graph, s_test_graph_cost, cal_influence_graph_nodal
 import numpy as np
 import scipy.sparse as sp
 import torch
@@ -14,13 +14,13 @@ import argparse
 from torch_geometric.utils import convert
 import warnings
 warnings.filterwarnings('ignore')
-import ctypes
-ctypes.cdll.LoadLibrary('caffe2_nvrtc.dll')
+# import ctypes
+# ctypes.cdll.LoadLibrary('caffe2_nvrtc.dll')
 torch.backends.cudnn.benchmark = True
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', type=str, default="bail", help='One dataset from income, bail, pokec1, and pokec2.')
-parser.add_argument('--seed', type=int, default=10, help='Random seed.')
+parser.add_argument('--seed', type=int, default=1, help='Random seed.')
 args = parser.parse_args()
 
 dataset_name = args.dataset
@@ -170,6 +170,13 @@ for i in tqdm(range(idx_train_vanilla.shape[0])):
 print("Pre-processing completed.")
 
 time1 = time.time()
+
+# edge_index = edge_index.to(torch.device('cuda'))
+# features_vanilla = features_vanilla.to(torch.device('cuda'))
+# idx_train_vanilla = idx_train_vanilla.to(torch.device('cuda'))
+# idx_test_vanilla = idx_test_vanilla.to(torch.device('cuda'))
+# labels_vanilla = labels_vanilla.to(torch.device('cuda'))
+# sens_vanilla = sens_vanilla.to(torch.device('cuda'))
 h_estimate_cost = s_test_graph_cost(edge_index, features_vanilla, idx_train_vanilla, idx_test_vanilla, labels_vanilla, sens_vanilla, model, gpu=0)
 gradients_list = grad_z_graph(edge_index, features_vanilla, idx_train_vanilla, labels_vanilla, model, gpu=0)
 influence, harmful, helpful, harmful_idx, helpful_idx = cal_influence_graph(idx_train_vanilla, h_estimate_cost, gradients_list, gpu=0)
