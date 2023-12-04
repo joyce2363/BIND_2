@@ -102,7 +102,7 @@ def load_income(dataset, seed, sens_attr="race", predict_attr="income", path="..
 
     return adj, features, labels, idx_train, idx_val, idx_test, sens.to(torch.device('cuda'))
 
-def load_nba(dataset, seed, sens_attr="country", predict_attr="SALARY", path="../data/nba/", label_number=100):  # 1000
+def load_nba(dataset, seed, sens_attr="country", predict_attr="SALARY", path="../data/nba/", label_number=150):  # 1000
     print('Loading {} dataset from {}'.format(dataset, path))
 
     idx_features_labels = pd.read_csv(os.path.join(path,"{}.csv".format(dataset)))
@@ -121,7 +121,7 @@ def load_nba(dataset, seed, sens_attr="country", predict_attr="SALARY", path="..
     idx = np.array(idx_features_labels["user_id"], dtype=int)
     idx_map = {j: i for i, j in enumerate(idx)}
     edges_unordered = np.genfromtxt(os.path.join(path,"{}_relationship.txt".format(dataset)), dtype=int)
-    print("edges_unordered: ", edges_unordered)
+    # print("edges_unordered: ", edges_unordered)
     edges = np.array(list(map(idx_map.get, edges_unordered.flatten())),
                      dtype=int).reshape(edges_unordered.shape)
     # print('edges: ', edges)
@@ -139,20 +139,20 @@ def load_nba(dataset, seed, sens_attr="country", predict_attr="SALARY", path="..
     # adj = sparse_mx_to_torch_sparse_tensor(adj)
 
     import random
-    random.seed(20)
+    random.seed(seed)
     label_idx = np.where(labels>=0)[0]
     random.shuffle(label_idx)
-
+    
     idx_train = label_idx[:min(int(0.5 * len(label_idx)),label_number)]
+    print("len idx_train: ", len(idx_train))
     idx_val = label_idx[int(0.5 * len(label_idx)):int(0.75 * len(label_idx))]
+    print("len idx_val: ", len(idx_val))
+
     if True:
         idx_test = label_idx[label_number:]
         idx_val = idx_test
     else:
         idx_test = label_idx[int(0.75 * len(label_idx)):]
-
-
-
 
     sens = idx_features_labels[sens_attr].values
 
@@ -160,7 +160,7 @@ def load_nba(dataset, seed, sens_attr="country", predict_attr="SALARY", path="..
     idx_test = np.asarray(list(sens_idx & set(idx_test)))
     sens = torch.FloatTensor(sens)
     idx_sens_train = list(sens_idx - set(idx_val) - set(idx_test))
-    random.seed(20)
+    random.seed(seed)
     random.shuffle(idx_sens_train)
     idx_sens_train = torch.LongTensor(idx_sens_train[:50])
 
@@ -168,9 +168,6 @@ def load_nba(dataset, seed, sens_attr="country", predict_attr="SALARY", path="..
     idx_train = torch.LongTensor(idx_train)
     idx_val = torch.LongTensor(idx_val)
     idx_test = torch.LongTensor(idx_test)
-
-
-    # random.shuffle(sens_idx)
 
     return adj, features, labels, idx_train, idx_val, idx_test, sens.to(torch.device('cuda'))
     # idx_features_labels = pd.read_csv(os.path.join(path, "{}.csv".format(dataset)))
@@ -319,6 +316,8 @@ def load_bail(dataset, seed, sens_attr="WHITE", predict_attr="RECID", path="../d
 
     random.shuffle(label_idx_0)
     random.shuffle(label_idx_1)
+    print("label_idx_0: ", len(label_idx_0))
+    print("label_idx_1: ", len(label_idx_1))
 
     # with open("label_idx_0_" + dataset + "_" + str(seed)+ ".pickle", "wb") as handle:
     #     pickle.dump(label_idx_0, handle)
@@ -337,6 +336,10 @@ def load_bail(dataset, seed, sens_attr="WHITE", predict_attr="RECID", path="../d
     idx_val = np.append(label_idx_0[int(0.5 * len(label_idx_0)):int(0.75 * len(label_idx_0))],
                         label_idx_1[int(0.5 * len(label_idx_1)):int(0.75 * len(label_idx_1))])
     idx_test = np.append(label_idx_0[int(0.75 * len(label_idx_0)):], label_idx_1[int(0.75 * len(label_idx_1)):])
+   
+    print("idx_train: ", len(idx_train))
+    print("idx_val: ", len(idx_val))
+    print("idx_test: ", len(idx_test))
 
     sens = idx_features_labels[sens_attr].values.astype(int)
     sens = torch.FloatTensor(sens)

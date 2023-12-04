@@ -48,7 +48,7 @@ for i in range(1,6):
     print("LENGTH FINAL SETS EO_RECORDS:", len(final_sets['eo_records']))
 
     print("BIND 10%:")
-    budget = 92
+    budget = 100
     print("Acc:", final_sets['acc_records'][budget])
     acc_10.append(final_sets['acc_records'][budget])
     print("Statistical Parity:", final_sets['sp_records'][budget])
@@ -76,22 +76,41 @@ print("average sp_10:", np.mean(sp_10), "+= ", np.var(sp_10) )
 # print("variance eo_10:", np.var(eo_10))
 print("average eo_10:", np.mean(eo_10), "+= ", np.var(eo_10) )
 
+filename = 'output.csv'
 
 dict['Model'] = 'BIND 1%'
 dict['Dataset'] = str(args.dataset)
-dict['Average'] = str(np.mean(acc_1)) + str(" += ") + str(np.var(acc_1))
-dict['Statistical Parity'] = str(np.mean(sp_1)) + str(" += ") + str(np.var(sp_1))
-dict['Equal Opportunity'] = str(np.mean(eo_1)) + str(" += ") + str(np.var(eo_1))
-print(dict)
-# Define the filename for the CSV file
-filename = 'output.csv'
+dict['Average'] = str(np.round(np.mean(acc_1), decimals=4) * 100) + str(" += ") + str(np.round(np.var(acc_1), decimals=4) * 100)
+dict['Statistical Parity'] = str(np.round(np.mean(sp_1), decimals=4) * 100) + str(" += ") + str(np.round(np.var(sp_1), decimals=4) * 100)
+dict['Equal Opportunity'] = str(np.round(np.mean(eo_1), decimals=4) * 100) + str(" += ") + str(np.round(np.var(eo_1), decimals=4) * 100)
 
 # Writing data from dictionary to the CSV file
-with open(filename, 'w', newline='') as file:
+with open(filename, 'a', newline='') as file:
     writer = csv.DictWriter(file, fieldnames=dict.keys())
     
     # Write header
-    writer.writeheader()
+    # writer.writeheader()
+    
+    # Write rows
+    for i in range(0,1):
+        row = {key: dict[key] for key in dict}
+        writer.writerow(row)
+
+print(f"Data from dictionary has been written to '{filename}' successfully.")
+
+dict['Model'] = ('BIND 10%')
+dict['Dataset'] = (str(args.dataset))
+dict['Average'] = (str(np.round(np.mean(acc_10), decimals=4)*100) + str(" += ") + str(np.round(np.var(acc_10), decimals=4)*100))
+dict['Statistical Parity'] = (str(np.round(np.mean(sp_10), decimals=4)*100) + str(" += ") + str(np.round(np.var(sp_10), decimals=4)*100))
+dict['Equal Opportunity'] = (str(np.round(np.mean(eo_10), decimals=4)*100) + str(" += ") + str(np.round(np.var(eo_10), decimals=4)*100))
+print(dict)
+
+# Writing data from dictionary to the CSV file
+with open(filename, 'a', newline='') as file:
+    writer = csv.DictWriter(file, fieldnames=dict.keys())
+    
+    # Write header
+    # writer.writeheader()
     
     # Write rows
     for i in range(0,1):

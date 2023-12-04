@@ -42,7 +42,7 @@ parser.add_argument('--hidden', type=int, default=16,
                     help='Number of hidden units.')
 parser.add_argument('--dropout', type=float, default=0.5,
                     help='Dropout rate (1 - keep probability).')
-parser.add_argument('--helpfulness_collection', type=int, default=0,
+parser.add_argument('--helpfulness_collection', type=int, default=1,
                     help='do leave-one-out for helpful nodes.')
 
 args = parser.parse_args()
@@ -94,7 +94,8 @@ def get_adj(dataset_name):
         predict_attr="RECID"
     elif dataset_name == 'income':
         predict_attr = "income"
-
+    elif dataset_name == 'nba': 
+        predict_attr = 'SALARY'
     if dataset_name == 'pokec1' or dataset_name == 'pokec2':
         if dataset_name == 'pokec1':
             edges = np.load('../data/pokec_dataset/region_job_1_edges.npy')
@@ -112,21 +113,27 @@ def get_adj(dataset_name):
     path="../data/" + str(dataset_name) + "/"
     dataset = dataset_name
     print('Reconstructing the adj of {} dataset...'.format(dataset))
+
     idx_features_labels = pd.read_csv(os.path.join(path, "{}.csv".format(dataset)))
     header = list(idx_features_labels.columns)
     header.remove(predict_attr)
-    if os.path.exists(f'{path}/{dataset}_edges.txt') and args.dataset != "nba":
+    if args.dataset == "nba": 
+        header.remove("user_id")
+
+    if args.dataset == "nba":
+        edges_unordered = np.genfromtxt(os.path.join(path,"{}_relationship.txt".format(dataset)), dtype=int)
+    else: 
         edges_unordered = np.genfromtxt(f'{path}/{dataset}_edges.txt').astype('int')
-    elif args.dataset == "nba":
-        # edges_unordered = build_relationship(idx_features_labels[header], thresh=0.6)
-        # np.savetxt(f'{path}/{dataset}_edges.txt', edges_unordered)
-        edges_unordered = np.genfromtxt(f'{path}/{dataset}_relationship.txt').astype('int')
 
 
     features = sp.csr_matrix(idx_features_labels[header], dtype=np.float32)
     labels = idx_features_labels[predict_attr].values
 
-    idx = np.arange(features.shape[0])
+    if args.dataset == 'nba': 
+        print("inside if statement")
+        idx = np.array(idx_features_labels["user_id"], dtype=int)
+    else: 
+        idx = np.arange(features.shape[0])
     idx_map = {j: i for i, j in enumerate(idx)}
     edges = np.array(list(map(idx_map.get, edges_unordered.flatten())),
                      dtype=int).reshape(edges_unordered.shape)
@@ -144,7 +151,8 @@ def del_adj(harmful, dataset_name):
         predict_attr="RECID"
     elif dataset_name == 'income':
         predict_attr = "income"
-
+    elif dataset_name == 'nba': 
+        predict_attr = "SALARY"
     if dataset_name == 'pokec1' or dataset_name == 'pokec2':
         if dataset_name == 'pokec1':
             edges = np.load('../data/pokec_dataset/region_job_1_edges.npy')
@@ -262,7 +270,7 @@ def tst():
     auc_records.append(auc_roc_test)
     f1_records.append(f1_test)
 
-for i in range (1,6):
+for i in range (1,2):
     seed = i 
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -337,6 +345,11 @@ for i in range (1,6):
         norm_features_ori = feature_norm(features_ori)
         norm_features_ori[:, 0] = features_ori[:, 0]
         features_ori = feature_norm(features_ori)
+    elif dataset_name == 'nba':
+        adj_ori, features_ori, labels_ori, idx_train_ori, idx_val_ori, idx_test_ori, sens_ori = load_nba('nba', seed)
+        norm_features_ori = feature_norm(features_ori)
+        norm_features_ori[:, 0] = features_ori[:, 0]
+        features_ori = feature_norm(features_ori)    
     elif dataset_name == 'income':
         adj_ori, features_ori, labels_ori, idx_train_ori, idx_val_ori, idx_test_ori, sens_ori = load_income('income', seed)
         norm_features_ori = feature_norm(features_ori)

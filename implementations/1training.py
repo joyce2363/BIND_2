@@ -25,7 +25,7 @@ parser.add_argument('--fastmode', action='store_true', default=False,
                     help='Validate during training pass.')
 parser.add_argument('--dataset', type=str, default="bail", help='One dataset from income, bail, pokec1, and pokec2.')
 parser.add_argument('--seed', type=int, default=1, help='Random seed.')
-parser.add_argument('--epochs', type=int, default=2000,
+parser.add_argument('--epochs', type=int, default=1000,
                     help='Number of epochs to train.')
 parser.add_argument('--lr', type=float, default=0.001,
                     help='Initial learning rate.')
@@ -124,9 +124,9 @@ def tst():
     print("SP cost:")
     # sens = sens.cuda()
     idx_sens_test = sens[idx_test]
-    print("idx_sens_test: ", idx_sens_test)
+    # print("idx_sens_test: ", idx_sens_test)
     idx_output_test = output[idx_test]
-    print("idx_output_test: ", idx_output_test)
+    # print("idx_output_test: ", idx_output_test)
     print(wasserstein_distance(idx_output_test[idx_sens_test==0].squeeze().cpu().detach().numpy(), idx_output_test[idx_sens_test==1].squeeze().cpu().detach().numpy()))
 
     print("EO cost:")
@@ -162,6 +162,9 @@ for i in range(1, 2):
     if dataset_name == 'bail':
         adj, features, labels, idx_train, idx_val, idx_test, sens = load_bail('bail', seed)
         norm_features = feature_norm(features)
+        # print("total training nodes bail, seed 1: ", len(idx_train))
+        # print("idx_val bail, seed 1: ", len(idx_val))
+        # print("idx_test bail, seed 1: ", len(idx_test))
         norm_features[:, 0] = features[:, 0]
         features = feature_norm(features)
     elif dataset_name == 'income':
@@ -171,8 +174,9 @@ for i in range(1, 2):
         features = feature_norm(features)
     elif dataset_name == "nba":
         adj, features, labels, idx_train, idx_val, idx_test, sens = load_nba('nba', seed)
-        print("idx_test: ", idx_test)
-        print("sens: ", sens)
+        print("total training nodes nba, seed 1: ", len(idx_train))
+        print("idx_val nba, seed 1: ", len(idx_val))
+        print("idx_test nba, seed 1: ", len(idx_test))
         norm_features = feature_norm(features)
         norm_features[:, 0] = features[:, 0]
         features = feature_norm(features)

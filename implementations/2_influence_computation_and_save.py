@@ -20,7 +20,7 @@ torch.backends.cudnn.benchmark = True
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', type=str, default="bail", help='One dataset from income, bail, pokec1, and pokec2.')
-parser.add_argument('--seed', type=int, default=1, help='Random seed.')
+# parser.add_argument('--seed', type=int, default=1, help='Random seed.')
 args = parser.parse_args()
 
 dataset_name = args.dataset
@@ -104,7 +104,7 @@ def get_adj(dataset_name):
         header.remove("user_id")
 
     if args.dataset == 'nba':
-        edges_unordered = np.genfromtxt(os.path.join(path,"{}_edges.txt".format(dataset)), dtype=int)
+        edges_unordered = np.genfromtxt(os.path.join(path,"{}_relationship.txt".format(dataset)), dtype=int)
     else: 
         edges_unordered = np.genfromtxt(f'{path}/{dataset}_edges.txt').astype('int')
 
