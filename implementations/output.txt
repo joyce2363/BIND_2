@@ -1,0 +1,31 @@
+0
+Loading income dataset from ../data/income/
+LABEL 0:  [ 7134   588  3882 ...  1033 12233  2201]
+LABEL 1:  [ 8581  7746  7687 ...  9032 10486  9351]
+Reconstructing the adj of income dataset...
+Finding neighbors ... 
+At most effective number:
+325
+Loading income dataset from ../data/income/
+LABEL 0:  [ 7134   588  3882 ...  1033 12233  2201]
+LABEL 1:  [ 8581  7746  7687 ...  9032 10486  9351]
+Loading income dataset from ../data/income/
+LABEL 0:  [ 5541 10338  4109 ...  1390  1500   926]
+LABEL 1:  [ 8904  8201  9803 ...  9603 12263 11508]
+Reconstructing the adj of income dataset...
+Finding neighbors ... 
+At most effective number:
+330
+Loading income dataset from ../data/income/
+LABEL 0:  [ 5541 10338  4109 ...  1390  1500   926]
+LABEL 1:  [ 8904  8201  9803 ...  9603 12263 11508]
+Loading income dataset from ../data/income/
+LABEL 0:  [ 3205  5071 10694 ... 11763 12675  3898]
+LABEL 1:  [ 7942 10871  9234 ...  8494  7710 10116]
+Reconstructing the adj of income dataset...
+Finding neighbors ... 
+At most effective number:
+310
+Loading income dataset from ../data/income/
+LABEL 0:  [ 3205  5071 10694 ... 11763 12675  3898]
+LABEL 1:  [ 7942 10871  9234 ...  8494  7710 10116]

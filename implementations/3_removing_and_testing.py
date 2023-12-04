@@ -19,7 +19,7 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 from scipy.stats import wasserstein_distance
-from utils import load_bail, load_income, load_pokec_renewed
+from utils import load_bail, load_income, load_pokec_renewed, load_nba
 import warnings
 warnings.filterwarnings('ignore')
 import ctypes
@@ -42,15 +42,11 @@ parser.add_argument('--hidden', type=int, default=16,
                     help='Number of hidden units.')
 parser.add_argument('--dropout', type=float, default=0.5,
                     help='Dropout rate (1 - keep probability).')
-parser.add_argument('--helpfulness_collection', type=int, default=1,
+parser.add_argument('--helpfulness_collection', type=int, default=0,
                     help='do leave-one-out for helpful nodes.')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
-np.random.seed(args.seed)
-torch.manual_seed(args.seed)
-torch.cuda.manual_seed(args.seed)
-dataset_name = args.dataset
 open_factor = args.helpfulness_collection
 print(open_factor)
 
@@ -119,11 +115,13 @@ def get_adj(dataset_name):
     idx_features_labels = pd.read_csv(os.path.join(path, "{}.csv".format(dataset)))
     header = list(idx_features_labels.columns)
     header.remove(predict_attr)
-    if os.path.exists(f'{path}/{dataset}_edges.txt'):
+    if os.path.exists(f'{path}/{dataset}_edges.txt') and args.dataset != "nba":
         edges_unordered = np.genfromtxt(f'{path}/{dataset}_edges.txt').astype('int')
-    else:
-        edges_unordered = build_relationship(idx_features_labels[header], thresh=0.6)
-        np.savetxt(f'{path}/{dataset}_edges.txt', edges_unordered)
+    elif args.dataset == "nba":
+        # edges_unordered = build_relationship(idx_features_labels[header], thresh=0.6)
+        # np.savetxt(f'{path}/{dataset}_edges.txt', edges_unordered)
+        edges_unordered = np.genfromtxt(f'{path}/{dataset}_relationship.txt').astype('int')
+
 
     features = sp.csr_matrix(idx_features_labels[header], dtype=np.float32)
     labels = idx_features_labels[predict_attr].values
@@ -211,64 +209,6 @@ def feature_norm(features):
     max_values = features.max(axis=0)[0]
     return 2*(features - min_values).div(max_values-min_values) - 1
 
-if dataset_name == 'bail':
-    adj, features, labels, idx_train, idx_val, idx_test, sens = load_bail('bail')
-    norm_features = feature_norm(features)
-    norm_features[:, 0] = features[:, 0]
-    features = feature_norm(features)
-elif dataset_name == 'income':
-    adj, features, labels, idx_train, idx_val, idx_test, sens = load_income('income')
-    norm_features = feature_norm(features)
-    norm_features[:, 8] = features[:, 8]
-    features = feature_norm(features)
-elif dataset_name == 'pokec1':
-    adj, features, labels, idx_train, idx_val, idx_test, sens = load_pokec_renewed(1)
-elif dataset_name == 'pokec2':
-    adj, features, labels, idx_train, idx_val, idx_test, sens = load_pokec_renewed(2)
-
-edge_index = convert.from_scipy_sparse_matrix(adj)[0]
-computation_graph_involving = []
-the_adj = get_adj(dataset_name)
-hop = 1
-print("Finding neighbors ... ")
-G = nx.Graph(the_adj)
-for i in tqdm(range(idx_train.shape[0])):
-    neighbors = find123Nei(G, idx_train[i].item())
-    mid = []
-    for j in range(hop):
-        mid += neighbors[j]
-    mid = list(set(mid).intersection(set(idx_train.numpy().tolist()))) + [idx_train[i].item()]
-    computation_graph_involving.append(mid)
-
-final_influence = np.load('final_influence_' + dataset_name + '.npy', allow_pickle=True)
-helpful = idx_train[np.argsort(final_influence).copy()].tolist()
-helpful_idx = np.argsort(final_influence).copy().tolist()
-harmful_idx = helpful_idx[::-1]
-harmful = idx_train[harmful_idx].tolist()
-
-if open_factor:
-    harmful = helpful
-    harmful_idx = helpful_idx
-
-total_neighbors = []
-masker = np.ones(len(harmful), dtype=bool)
-for i in range(len(harmful) - 1):
-    if masker[i] == True:
-        total_neighbors += computation_graph_involving[harmful_idx[i]]
-    if list(set(total_neighbors).intersection(set(computation_graph_involving[harmful_idx[i + 1]]))) != []:  # != [] 找的是nonoverlapping的
-        masker[i+1] = False
-
-harmful_idx = np.array(harmful_idx)[masker].tolist()
-harmful = idx_train[harmful_idx].tolist()
-
-max_num = 0
-for i in range(len(final_influence[harmful_idx]) - 1):
-    if final_influence[harmful_idx][i] * final_influence[harmful_idx][i+1] <= 0:
-        print("At most effective number:")
-        print(i + 1)
-        max_num = i + 1
-        break
-
 def fair_metric(pred, labels, sens):
     idx_s0 = sens==0
     idx_s1 = sens==1
@@ -297,14 +237,6 @@ def train(epoch):
 
     loss_val = F.binary_cross_entropy_with_logits(output[idx_val], labels[idx_val].unsqueeze(1).float())
     acc_val = accuracy_new(preds[idx_val], labels[idx_val])
-    # print('Epoch: {:04d}'.format(epoch+1),
-    #       'loss_train: {:.4f}'.format(loss_train.item()),
-    #       'acc_train: {:.4f}'.format(acc_train.item()),
-    #       'loss_val: {:.4f}'.format(loss_val.item()),
-    #       'acc_val: {:.4f}'.format(acc_val.item()),
-    #       'time: {:.4f}s'.format(time.time() - t))
-    # print(wasserstein_cost_loss(output[idx_test], sens[idx_test]))
-
     return loss_val.item()
 
 
@@ -330,108 +262,177 @@ def tst():
     auc_records.append(auc_roc_test)
     f1_records.append(f1_test)
 
+for i in range (1,6):
+    seed = i 
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    dataset_name = args.dataset
+    
+    if dataset_name == 'bail':
+        adj, features, labels, idx_train, idx_val, idx_test, sens = load_bail('bail', seed)
+        norm_features = feature_norm(features)
+        norm_features[:, 0] = features[:, 0]
+        features = feature_norm(features)
+    elif dataset_name == "nba": 
+        adj, features, labels, idx_train, idx_val, idx_test, sens = load_nba('nba', seed)
+        norm_features = feature_norm(features)
+        norm_features[:, 0] = features[:, 0]
+        features = feature_norm(features)
+    elif dataset_name == 'income':
+        adj, features, labels, idx_train, idx_val, idx_test, sens = load_income('income', seed)
+        norm_features = feature_norm(features)
+        norm_features[:, 8] = features[:, 8]
+        features = feature_norm(features)
+    elif dataset_name == 'pokec1':
+        adj, features, labels, idx_train, idx_val, idx_test, sens = load_pokec_renewed(1, seed)
+    elif dataset_name == 'pokec2':
+        adj, features, labels, idx_train, idx_val, idx_test, sens = load_pokec_renewed(2, seed)
 
-if dataset_name == 'bail':
-    adj_ori, features_ori, labels_ori, idx_train_ori, idx_val_ori, idx_test_ori, sens_ori = load_bail('bail')
-    norm_features_ori = feature_norm(features_ori)
-    norm_features_ori[:, 0] = features_ori[:, 0]
-    features_ori = feature_norm(features_ori)
-elif dataset_name == 'income':
-    adj_ori, features_ori, labels_ori, idx_train_ori, idx_val_ori, idx_test_ori, sens_ori = load_income('income')
-    norm_features_ori = feature_norm(features_ori)
-    norm_features_ori[:, 8] = features_ori[:, 8]
-    features_ori = feature_norm(features_ori)
-elif dataset_name == 'pokec1':
-    adj_ori, features_ori, labels_ori, idx_train_ori, idx_val_ori, idx_test_ori, sens_ori = load_pokec_renewed(1)
-elif dataset_name == 'pokec2':
-    adj_ori, features_ori, labels_ori, idx_train_ori, idx_val_ori, idx_test_ori, sens_ori = load_pokec_renewed(2)
-
-edge_index_ori = convert.from_scipy_sparse_matrix(adj_ori)[0]
-
-influence_approximation = []
-fair_cost_records = []
-sp_records = []
-eo_records = []
-acc_records = []
-auc_records = []
-f1_records = []
-
-batch_size = 1
-percetage_budget = 0.3
-
-
-for num_of_deleting in tqdm(range(int(percetage_budget * max_num//batch_size) + 1)):
-
-    adj, features, labels, idx_train, idx_val, idx_test, sens = adj_ori, features_ori.clone(), labels_ori.clone(), idx_train_ori.clone(), idx_val_ori.clone(), idx_test_ori.clone(), sens_ori.clone()
-    bin = num_of_deleting
-    k = int(batch_size * bin)
-    harmful_flags = harmful[:k]
-
-    influence_approximation.append(sum(final_influence[harmful_idx[:k]]))
-    harmful_idx_flags = harmful_idx[:k]
-    mask = np.ones(idx_train.shape[0], dtype=bool)
-    mask[harmful_idx_flags] = False
-    idx_train = idx_train[mask]
-    idx_val = idx_val.clone()
-    idx_test = idx_test.clone()
-
-    reference = list(range(adj.shape[0]))
-    for i in range(len(harmful_flags)):
-        for j in range(len(reference) - harmful_flags[i]):
-            reference[j + harmful_flags[i]] -= 1
-
-    idx_train = torch.LongTensor(np.array(reference)[idx_train.numpy()])
-    idx_val = torch.LongTensor(np.array(reference)[idx_val.numpy()])
-    idx_test = torch.LongTensor(np.array(reference)[idx_test.numpy()])
-
-    mask = np.ones(labels.shape[0], dtype=bool)
-    mask[harmful_flags] = False
-    features = features[mask, :]
-    labels = labels[mask]
-    sens = sens[mask]
-
-    adj = del_adj(harmful_flags, dataset_name)
     edge_index = convert.from_scipy_sparse_matrix(adj)[0]
-    model = torch.load('gcn_' + dataset_name + '.pth')
-    optimizer = optim.Adam(model.parameters(),
-                           lr=args.lr, weight_decay=args.weight_decay)
+    computation_graph_involving = []
+    the_adj = get_adj(dataset_name)
+    hop = 1
+    print("Finding neighbors ... ")
+    G = nx.Graph(the_adj)
+    for i in tqdm(range(idx_train.shape[0])):
+        neighbors = find123Nei(G, idx_train[i].item())
+        mid = []
+        for j in range(hop):
+            mid += neighbors[j]
+        mid = list(set(mid).intersection(set(idx_train.numpy().tolist()))) + [idx_train[i].item()]
+        computation_graph_involving.append(mid)
 
-    if args.cuda:
-        model.cuda()
-        features = features.cuda()
-        edge_index = edge_index.cuda()
-        labels = labels.cuda()
-        idx_train = idx_train.cuda()
-        idx_val = idx_val.cuda()
-        idx_test = idx_test.cuda()
+    final_influence = np.load('final_influence_' + dataset_name + str(seed) + '.npy', allow_pickle=True)
+    helpful = idx_train[np.argsort(final_influence).copy()].tolist()
+    helpful_idx = np.argsort(final_influence).copy().tolist()
+    harmful_idx = helpful_idx[::-1]
+    harmful = idx_train[harmful_idx].tolist()
 
-    final_epochs = -1
-    loss_val_global = 1e10
+    if open_factor:
+        harmful = helpful
+        harmful_idx = helpful_idx
 
-    for epoch in range(args.epochs):
-        loss_mid = train(epoch)
-        if loss_mid < loss_val_global:
-            loss_val_global = loss_mid
-            torch.save(model, 'mid_best' + str(bin) + '.pth')
-            final_epochs = epoch
+    total_neighbors = []
+    masker = np.ones(len(harmful), dtype=bool)
+    for i in range(len(harmful) - 1):
+        if masker[i] == True:
+            total_neighbors += computation_graph_involving[harmful_idx[i]]
+        if list(set(total_neighbors).intersection(set(computation_graph_involving[harmful_idx[i + 1]]))) != []:  # != [] 找的是nonoverlapping的
+            masker[i+1] = False
 
-    if final_epochs == -1:
-        assert 1 == 0
+    harmful_idx = np.array(harmful_idx)[masker].tolist()
+    harmful = idx_train[harmful_idx].tolist()
 
-    model = torch.load('mid_best' + str(bin) + '.pth')
-    tst()
-    os.remove('mid_best' + str(bin) + '.pth')
+    max_num = 0
+    for i in range(len(final_influence[harmful_idx]) - 1):
+        if final_influence[harmful_idx][i] * final_influence[harmful_idx][i+1] <= 0:
+            print("At most effective number:")
+            print(i + 1)
+            max_num = i + 1
+            break
 
-final_sets = {}
-final_sets['influence_approximation'] = influence_approximation
-final_sets['fair_cost_records'] = fair_cost_records
-final_sets['sp_records'] = sp_records
-final_sets['eo_records'] = eo_records
-final_sets['acc_records'] = acc_records
-final_sets['auc_records'] = auc_records
-final_sets['f1_records'] = f1_records
+    if dataset_name == 'bail':
+        adj_ori, features_ori, labels_ori, idx_train_ori, idx_val_ori, idx_test_ori, sens_ori = load_bail('bail', seed)
+        norm_features_ori = feature_norm(features_ori)
+        norm_features_ori[:, 0] = features_ori[:, 0]
+        features_ori = feature_norm(features_ori)
+    elif dataset_name == 'income':
+        adj_ori, features_ori, labels_ori, idx_train_ori, idx_val_ori, idx_test_ori, sens_ori = load_income('income', seed)
+        norm_features_ori = feature_norm(features_ori)
+        norm_features_ori[:, 8] = features_ori[:, 8]
+        features_ori = feature_norm(features_ori)
+    elif dataset_name == 'pokec1':
+        adj_ori, features_ori, labels_ori, idx_train_ori, idx_val_ori, idx_test_ori, sens_ori = load_pokec_renewed(1, seed)
+    elif dataset_name == 'pokec2':
+        adj_ori, features_ori, labels_ori, idx_train_ori, idx_val_ori, idx_test_ori, sens_ori = load_pokec_renewed(2, seed)
 
-if open_factor:
-    np.save('1final_sets_' + dataset_name + '.npy', final_sets)
-else:
-    np.save('imp_final_sets_' + dataset_name + '.npy', final_sets)
+    edge_index_ori = convert.from_scipy_sparse_matrix(adj_ori)[0]
+
+    influence_approximation = []
+    fair_cost_records = []
+    sp_records = []
+    eo_records = []
+    acc_records = []
+    auc_records = []
+    f1_records = []
+
+    batch_size = 1
+    percetage_budget = 0.3
+
+
+    for num_of_deleting in tqdm(range(int(percetage_budget * max_num//batch_size) + 1)):
+
+        adj, features, labels, idx_train, idx_val, idx_test, sens = adj_ori, features_ori.clone(), labels_ori.clone(), idx_train_ori.clone(), idx_val_ori.clone(), idx_test_ori.clone(), sens_ori.clone()
+        bin = num_of_deleting
+        k = int(batch_size * bin)
+        harmful_flags = harmful[:k]
+
+        influence_approximation.append(sum(final_influence[harmful_idx[:k]]))
+        harmful_idx_flags = harmful_idx[:k]
+        mask = np.ones(idx_train.shape[0], dtype=bool)
+        mask[harmful_idx_flags] = False
+        idx_train = idx_train[mask]
+        idx_val = idx_val.clone()
+        idx_test = idx_test.clone()
+
+        reference = list(range(adj.shape[0]))
+        for i in range(len(harmful_flags)):
+            for j in range(len(reference) - harmful_flags[i]):
+                reference[j + harmful_flags[i]] -= 1
+
+        idx_train = torch.LongTensor(np.array(reference)[idx_train.numpy()])
+        idx_val = torch.LongTensor(np.array(reference)[idx_val.numpy()])
+        idx_test = torch.LongTensor(np.array(reference)[idx_test.numpy()])
+
+        mask = np.ones(labels.shape[0], dtype=bool)
+        mask[harmful_flags] = False
+        features = features[mask, :]
+        labels = labels[mask]
+        sens = sens[mask]
+
+        adj = del_adj(harmful_flags, dataset_name)
+        edge_index = convert.from_scipy_sparse_matrix(adj)[0]
+        model = torch.load('gcn_' + dataset_name + str(seed) + '.pth')
+        optimizer = optim.Adam(model.parameters(),
+                            lr=args.lr, weight_decay=args.weight_decay)
+
+        if args.cuda:
+            model.cuda()
+            features = features.cuda()
+            edge_index = edge_index.cuda()
+            labels = labels.cuda()
+            idx_train = idx_train.cuda()
+            idx_val = idx_val.cuda()
+            idx_test = idx_test.cuda()
+
+        final_epochs = -1
+        loss_val_global = 1e10
+
+        for epoch in range(args.epochs):
+            loss_mid = train(epoch)
+            if loss_mid < loss_val_global:
+                loss_val_global = loss_mid
+                torch.save(model, 'mid_best' + str(bin) + '.pth')
+                final_epochs = epoch
+
+        if final_epochs == -1:
+            assert 1 == 0
+
+        model = torch.load('mid_best' + str(bin) + '.pth')
+        tst()
+        os.remove('mid_best' + str(bin) + '.pth')
+
+    final_sets = {}
+    final_sets['influence_approximation'] = influence_approximation
+    final_sets['fair_cost_records'] = fair_cost_records
+    final_sets['sp_records'] = sp_records
+    final_sets['eo_records'] = eo_records
+    final_sets['acc_records'] = acc_records
+    final_sets['auc_records'] = auc_records
+    final_sets['f1_records'] = f1_records
+
+    if open_factor:
+        np.save('1final_sets_' + dataset_name + str(seed) + '.npy', final_sets)
+    else:
+        np.save('imp_final_sets_' + dataset_name + str(seed) + '.npy', final_sets)
