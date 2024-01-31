@@ -5,6 +5,15 @@ import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
 
 
+# class GCN(nn.Module):
+#     def __init__(self, nfeat, nhid, dropout=0.5):
+#         super(GCN, self).__init__()
+#         self.gc1 = GCNConv(nfeat, nhid)
+
+#     def forward(self, edge_index, x):
+#         x = self.gc1(x, edge_index)
+#         return x
+    
 class GCN(nn.Module):
     def __init__(self, nfeat, nhid, nclass, dropout):
         super(GCN, self).__init__()

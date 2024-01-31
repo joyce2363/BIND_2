@@ -9,7 +9,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import optuna
 from utils import load_bail, load_income, load_pokec_renewed, load_nba
-from GNNs import GCN
+from GNNs import GCN, GAT, SAGE
 from scipy.stats import wasserstein_distance
 from tqdm import tqdm
 import warnings
@@ -24,6 +24,7 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
 parser.add_argument('--fastmode', action='store_true', default=False,
                     help='Validate during training pass.')
 parser.add_argument('--dataset', type=str, default="bail", help='One dataset from income, bail, pokec1, and pokec2.')
+parser.add_argument('--model', type=str, default="gcn")
 parser.add_argument('--seed', type=int, default=1, help='Random seed.')
 parser.add_argument('--epochs', type=int, default=1000,
                     help='Number of epochs to train.')
@@ -45,34 +46,6 @@ def feature_norm(features):
     max_values = features.max(axis=0)[0]
     return 2*(features - min_values).div(max_values-min_values) - 1
 
-# if dataset_name == 'bail':
-#     adj, features, labels, idx_train, idx_val, idx_test, sens = load_bail('bail')
-#     norm_features = feature_norm(features)
-#     norm_features[:, 0] = features[:, 0]
-#     features = feature_norm(features)
-# elif dataset_name == 'income':
-#     adj, features, labels, idx_train, idx_val, idx_test, sens = load_income('income')
-#     norm_features = feature_norm(features)
-#     norm_features[:, 8] = features[:, 8]
-#     features = feature_norm(features)
-# elif dataset_name == "nba":
-#     adj, features, labels, idx_train, idx_val, idx_test, sens = load_nba('nba')
-#     print("idx_test: ", idx_test)
-#     print("sens: ", sens)
-#     norm_features = feature_norm(features)
-#     norm_features[:, 0] = features[:, 0]
-#     features = feature_norm(features)
-# elif dataset_name == 'pokec1':
-#     adj, features, labels, idx_train, idx_val, idx_test, sens = load_pokec_renewed(1)
-# elif dataset_name == 'pokec2':
-#     adj, features, labels, idx_train, idx_val, idx_test, sens = load_pokec_renewed(2)
-
-# edge_index = convert.from_scipy_sparse_matrix(adj)[0]
-# model = GCN(nfeat=features.shape[1], nhid=args.hidden, nclass=1, dropout=args.dropout)
-# optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-
-    
-
 def accuracy_new(output, labels):
     correct = output.eq(labels).double()
     correct = correct.sum()
@@ -87,7 +60,7 @@ def fair_metric(pred, labels, sens):
     equality = abs(sum(pred[idx_s0_y1])/sum(idx_s0_y1)-sum(pred[idx_s1_y1])/sum(idx_s1_y1))
     return parity.item(), equality.item()
 
-def train(epoch):
+def train(epoch, model, optimizer, features, edge_index, idx_train, idx_val, idx_test, labels, sens):
     t = time.time()
     model.train()
     optimizer.zero_grad()
@@ -104,16 +77,9 @@ def train(epoch):
 
     loss_val = F.binary_cross_entropy_with_logits(output[idx_val], labels[idx_val].unsqueeze(1).float())
     acc_val = accuracy_new(preds[idx_val], labels[idx_val])
-    # print('Epoch: {:04d}'.format(epoch+1),
-    #       'loss_train: {:.4f}'.format(loss_train.item()),
-    #       'acc_train: {:.4f}'.format(acc_train.item()),
-    #       'loss_val: {:.4f}'.format(loss_val.item()),
-    #       'acc_val: {:.4f}'.format(acc_val.item()),
-    #       'time: {:.4f}s'.format(time.time() - t))
-
     return loss_val.item()
 
-def tst():
+def tst(epoch, model, optimizer, features, edge_index, idx_train, idx_val, idx_test, labels, sens):
     model.eval()
     output = model(features, edge_index)
     preds = (output.squeeze() > 0).type_as(labels)
@@ -124,9 +90,7 @@ def tst():
     print("SP cost:")
     # sens = sens.cuda()
     idx_sens_test = sens[idx_test]
-    # print("idx_sens_test: ", idx_sens_test)
     idx_output_test = output[idx_test]
-    # print("idx_output_test: ", idx_output_test)
     print(wasserstein_distance(idx_output_test[idx_sens_test==0].squeeze().cpu().detach().numpy(), idx_output_test[idx_sens_test==1].squeeze().cpu().detach().numpy()))
 
     print("EO cost:")
@@ -152,41 +116,51 @@ loss_val_global = 1e10
 
 starting = time.time()
 
-for i in range(1, 2): 
-    seed = i
+def objective(trial):
+    # Define the hyperparameter search space
+    hidden = trial.suggest_categorical("hidden", [4, 16, 64, 128])
+    lr = trial.suggest_categorical("lr", [1e-2, 1e-3, 1e-4, 1e-5])
+    dropout = trial.suggest_categorical("dropout", [0.3, 0.4, 0.5, 0.6, 0.7])
+    weight_decay = trial.suggest_categorical("weight_decay", [1e-2, 1e-3, 1e-4, 1e-5])
+    args.dropout = dropout
+    args.lr = lr
+    args.weight_decay = weight_decay
+    args.hidden = hidden
+
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     if args.cuda:
         torch.cuda.manual_seed(args.seed)
 
     if dataset_name == 'bail':
-        adj, features, labels, idx_train, idx_val, idx_test, sens = load_bail('bail', seed)
+        adj, features, labels, idx_train, idx_val, idx_test, sens = load_bail('bail', args.seed)
         norm_features = feature_norm(features)
-        # print("total training nodes bail, seed 1: ", len(idx_train))
-        # print("idx_val bail, seed 1: ", len(idx_val))
-        # print("idx_test bail, seed 1: ", len(idx_test))
         norm_features[:, 0] = features[:, 0]
         features = feature_norm(features)
     elif dataset_name == 'income':
-        adj, features, labels, idx_train, idx_val, idx_test, sens = load_income('income', seed)
+        adj, features, labels, idx_train, idx_val, idx_test, sens = load_income('income', args.seed)
         norm_features = feature_norm(features)
         norm_features[:, 8] = features[:, 8]
         features = feature_norm(features)
     elif dataset_name == "nba":
-        adj, features, labels, idx_train, idx_val, idx_test, sens = load_nba('nba', seed)
-        print("total training nodes nba, seed 1: ", len(idx_train))
-        print("idx_val nba, seed 1: ", len(idx_val))
-        print("idx_test nba, seed 1: ", len(idx_test))
+        adj, features, labels, idx_train, idx_val, idx_test, sens = load_nba('nba', args.seed)
         norm_features = feature_norm(features)
         norm_features[:, 0] = features[:, 0]
         features = feature_norm(features)
     elif dataset_name == 'pokec1':
-        adj, features, labels, idx_train, idx_val, idx_test, sens = load_pokec_renewed(1, seed)
+        adj, features, labels, idx_train, idx_val, idx_test, sens = load_pokec_renewed(1, args.seed)
     elif dataset_name == 'pokec2':
-        adj, features, labels, idx_train, idx_val, idx_test, sens = load_pokec_renewed(2, seed)
+        adj, features, labels, idx_train, idx_val, idx_test, sens = load_pokec_renewed(2, args.seed)
 
     edge_index = convert.from_scipy_sparse_matrix(adj)[0]
-    model = GCN(nfeat=features.shape[1], nhid=args.hidden, nclass=1, dropout=args.dropout)
+    if args.model == "sage": 
+        model = SAGE(nfeat=features.shape[1], nhid = 1)
+    elif args.model == "gat":
+        model = GAT(nfeat=features.shape[1], nhid = 1)
+    elif args.model == "gcn": 
+        # print("entered")
+        model = GCN(nfeat=features.shape[1], nhid = args.hidden, nclass=labels.unique().shape[0]-1, dropout=args.dropout)
+
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 
     if args.cuda:
@@ -198,15 +172,16 @@ for i in range(1, 2):
         idx_val = idx_val.cuda()
         idx_test = idx_test.cuda()
     for epoch in tqdm(range(args.epochs)):
-        loss_mid = train(epoch)
+        loss_mid = train(epoch, model, optimizer, features, edge_index, idx_train, idx_val, idx_test, labels, sens)
         if loss_mid < loss_val_global:
+            print("entered part 2")
             loss_val_global = loss_mid
-            torch.save(model, 'gcn_' + dataset_name + str(seed) + '.pth')
+            torch.save(model, str(args.model) + '_all_' + dataset_name + str(args.seed) + '.pth')
             final_epochs = epoch
 
-    torch.save(model, 'gcn_' + dataset_name + str(seed) + '.pth')
+    torch.save(model, str(args.model) + '_all_' + dataset_name + str(args.seed) + '.pth')
 
     ending = time.time()
     print("Time:", ending - starting, "s")
-    model = torch.load('gcn_' + dataset_name + str(seed) + '.pth')
-    tst()
+    model = torch.load(args.model, str(args.model) + '_all_' + dataset_name + str(args.seed) + '.pth')
+    tst(epoch, model, optimizer, features, edge_index, idx_train, idx_val, idx_test, labels, sens)

@@ -140,7 +140,7 @@ def grad_z_graph_faircost(adj, features, idx, labels, sens, model, gpu=1):
     return list(grad(loss, params, create_graph=False))
 
 
-def s_test_graph_cost(adj, features, idx_train, idx_test, labels, sens, model, gpu=1, damp=0.03, scale=60,
+def s_test_graph_cost(adj, features, idx_train, idx_test, labels, sens, model, scale, gpu=1, damp=0.03,
            recursion_depth=5000):
     # For Pokec2 with GCN:
     # setting scale as 50 to achieve better estimated Pearson correlation;
@@ -148,7 +148,7 @@ def s_test_graph_cost(adj, features, idx_train, idx_test, labels, sens, model, g
 
     v = grad_z_graph_faircost(adj, features, idx_test, labels, sens, model, gpu)
     h_estimate_cost = v.copy()
-
+    # print("H_ESTIMATE_COST: ", h_estimate_cost)
     if gpu >= 0:
         adj, features, labels = adj.cuda(), features.cuda(), labels.cuda()
     if gpu < 0:
@@ -156,7 +156,9 @@ def s_test_graph_cost(adj, features, idx_train, idx_test, labels, sens, model, g
 
     for i in range(recursion_depth):
         random_train_idx = idx_train[random.randint(0, len(idx_train) - 1)]
+        # print("random_train_idx: ", random_train_idx)
         output = model(features, adj)
+        # print("output: ", output)
         out, label = output[random_train_idx], labels[random_train_idx].unsqueeze(0).float()
         loss = F.binary_cross_entropy_with_logits(out, label)
         params = [p for p in model.parameters() if p.requires_grad]
@@ -164,8 +166,10 @@ def s_test_graph_cost(adj, features, idx_train, idx_test, labels, sens, model, g
         h_estimate_cost = [
             _v + (1 - damp) * _h_e - _hv / scale
             for _v, _h_e, _hv in zip(v, h_estimate_cost, hv)]
+        # print('h_estimate_cost: ', h_estimate_cost)
 
     h_estimate_cost = [b / scale for b in h_estimate_cost]
+    # print('NEW h_estimate_cost: ', h_estimate_cost)
     return h_estimate_cost
 
 def grad_z_graph(adj, features, idx, labels, model, gpu=1):

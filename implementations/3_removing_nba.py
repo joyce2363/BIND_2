@@ -2,7 +2,7 @@ from __future__ import division
 from __future__ import print_function
 
 
-from approximator import wasserstein_cost_loss
+# from approximator import wasserstein_cost_loss
 from numpy import *
 import scipy.sparse as sp
 from tqdm import tqdm
@@ -22,7 +22,6 @@ from scipy.stats import wasserstein_distance
 from utils import load_bail, load_income, load_pokec_renewed, load_nba
 import warnings
 warnings.filterwarnings('ignore')
-import ctypes
 # ctypes.cdll.LoadLibrary('caffe2_nvrtc.dll')
 
 parser = argparse.ArgumentParser()
@@ -424,9 +423,9 @@ final_sets['auc_records'] = auc_records
 final_sets['f1_records'] = f1_records
 
 if open_factor:
-    np.save('1final_sets_' + dataset_name + '.npy', final_sets)
+    np.save('1final_sets_' + str(args.model) + dataset_name + str(seed) + '.npy', final_sets)
 else:
-    np.save('imp_final_sets_' + dataset_name + '.npy', final_sets)
+    np.save('1final_sets_' + str(args.model) + dataset_name + str(seed) + '.npy', final_sets)
 
 #expected output example
 # 0
