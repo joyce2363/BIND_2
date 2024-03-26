@@ -29,7 +29,7 @@ parser.add_argument('--epochs', type=int, default=1000,
 parser.add_argument('--dataset', type=str, default="income", help='One dataset from income, bail, pokec1, and pokec2.')
 parser.add_argument('--lr', type=float, default=0.001)
 parser.add_argument('--weight_decay', type=float, default=0.0001)
-parser.add_argument('--num_hidden', type=int, default=16)
+parser.add_argument('--hidden', type=int, default=16)
 parser.add_argument('--dropout', type=float, default=0.5)
 parser.add_argument('--ap', type=float, default=25)
 args = parser.parse_args()

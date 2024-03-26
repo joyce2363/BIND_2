@@ -38,17 +38,6 @@ parser.add_argument('--seed', type=int, default=1)
 parser.add_argument('--epochs', type=int, default=1000,
                     help='Number of epochs to train.')
 parser.add_argument('--dataset', type=str, default="income", help='One dataset from income, bail, pokec1, and pokec2.')
-# parser.add_argument('--lr', type=int, default=0.001)
-# parser.add_argument('--weight_decay', type=float, default=0.0001)
-# parser.add_argument('--num_hidden', type=int, default=16)
-# parser.add_argument('--dropout', type=float, default=0.5)
-# parser.add_argument('--ap', type=float, default=25)
-
-# parser.add_argument('--lr', nargs='+', type=float, default=[0.001])
-# parser.add_argument('--weight_decay', nargs='+', type=float, default=[0.0001])
-# parser.add_argument('--num_hidden', nargs='+', type=int, default=[16])
-# parser.add_argument('--dropout', nargs='+', type=float, default=[0.5])
-# parser.add_argument('--ap', nargs='+', type=float, default=[25])
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()

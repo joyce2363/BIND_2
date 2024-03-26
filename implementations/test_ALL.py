@@ -29,15 +29,15 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='Disables CUDA training.')
 parser.add_argument('--fastmode', action='store_true', default=False,
                     help='Validate during training pass.')
-parser.add_argument('--model', type=str, default='gcn')
 # parser.add_argument('--seed', nargs='+', type=int, default=[1])
 parser.add_argument('--seed', type=int, default=1)
 parser.add_argument('--epochs', type=int, default=1000,
                     help='Number of epochs to train.')
 parser.add_argument('--dataset', type=str, default="income", help='One dataset from income, bail, pokec1, and pokec2.')
+parser.add_argument('--model', type=str, default='gcn')
+parser.add_argument('--hidden', type=int, default=16)
 parser.add_argument('--lr', type=float, default=0.001)
 parser.add_argument('--weight_decay', type=float, default=0.0001)
-parser.add_argument('--num_hidden', type=int, default=16)
 parser.add_argument('--dropout', type=float, default=0.5)
 parser.add_argument('--ap', type=float, default=25)
 # parser.add_argument('--lr', nargs='+', type=float, default=[0.001])
@@ -63,7 +63,7 @@ def feature_norm(features):
 
 if dataset_name == 'nba':
     part1b(dataset = args.dataset,
-                pnum_hidden = args.num_hidden,
+                phidden = args.hidden,
                 pdropout = args.dropout, 
                 plr = args.lr, 
                 pweight_decay = args.weight_decay, 
@@ -81,7 +81,7 @@ if dataset_name == 'nba':
         model = args.model, 
         plr = args.lr,
         pweight_decay = args.weight_decay,
-        pnum_hidden = args.num_hidden,
+        pnum_hidden = args.hidden,
         pdropout = args.dropout,
         pseed = args.seed
     )    
@@ -89,14 +89,14 @@ if dataset_name == 'nba':
     dataset_name = args.dataset,
             seed = args.seed)
 else:
-    # part1(dataset = args.dataset,
-    #         pnum_hidden = args.num_hidden,
-    #         pdropout = args.dropout, 
-    #         plr = args.lr, 
-    #         pweight_decay = args.weight_decay, 
-    #         epochs = args.epochs,
-    #         model = args.model,
-    #         pseed = args.seed)
+    part1(dataset = args.dataset,
+            pnum_hidden = args.hidden,
+            pdropout = args.dropout, 
+            plr = args.lr, 
+            pweight_decay = args.weight_decay, 
+            epochs = args.epochs,
+            model = args.model,
+            pseed = args.seed)
 
     part2(dataset = args.dataset,
             model = args.model,
@@ -109,7 +109,7 @@ else:
         model = args.model, 
         plr = args.lr,
         pweight_decay = args.weight_decay,
-        pnum_hidden = args.num_hidden,
+        pnum_hidden = args.hidden,
         pdropout = args.dropout,
         pseed = args.seed
     )
@@ -117,7 +117,7 @@ else:
         dataset_name = args.dataset,
                 seed = args.seed)
 
-filename = 'TEST_output.csv'
+filename = 'new_output.csv'
 fieldnames = ['dataset', 'seed', 'model', 'ACC_10', 'SP_10', 'EO_10', 'ACC_100', 'SP_100', 'EO_100']
 
 # Create a dictionary mapping fieldnames to the corresponding variables

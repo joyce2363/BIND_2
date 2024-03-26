@@ -102,14 +102,44 @@ python test_ALL.py --dataset bail --model sage --seed 3 \
     --hidden 64 --dropout 0.6 --lr 0.01 --weight_decay 0.0001 --ap 1000
 
 
-64,0.7,0.01,0.001,1000,bail,1,0.9769018859927951,BIND_sage seed = 1
-128,0.4,0.001,0.001,1000,bail,2,0.975206611570248,BIND_sage seed = 2
-64,0.6,0.01,0.0001,1000,bail,3,0.9749947022674296,BIND_sage seed = 3
-128,0.5,0.0001,0.0001,200,bail,4,0.9044289044289044,BIND_sage seed = 4
-128,0.4,0.0001,0.01,200,bail,5,0.8948929858020768,BIND_sageseed = 5
 
-python test_ALL.py --dataset bail --model sage --seed 1 --hidden 64 --dropout 0.7 --lr 0.01 --weight_decay 0.001 --ap 1000
-python test_ALL.py --dataset bail --model sage --seed 2 --hidden 128 --dropout 0.4 --lr 0.001 --weight_decay 0.001 --ap 1000
-python test_ALL.py --dataset bail --model sage --seed 3 --hidden 64 --dropout 0.6 --lr 0.01 --weight_decay 0.0001 --ap 1000
-python test_ALL.py --dataset bail --model sage --seed 4 --hidden 128 --dropout 0.5 --lr 0.0001 --weight_decay 0.0001 --ap 200
-python test_ALL.py --dataset bail --model sage --seed 5 --hidden 128 --dropout 0.2 --lr 0.0001 --weight_decay 0.01 --ap 200
+python test_ALL.py --dataset bail \
+    --model sage \
+    --seed 1 \
+    --hidden 64 \
+    --dropout 0.7 \
+    --lr 0.01 \
+    --weight_decay 0.001 \
+    --ap 1000
+python test_ALL.py --dataset bail \
+    --model sage \
+    --seed 2 \
+    --hidden 128 \
+    --dropout 0.4 \
+    --lr 0.001 \
+    --weight_decay 0.001 \
+    --ap 1000
+python test_ALL.py --dataset bail \
+    --model sage \
+    --seed 3 \
+    --hidden 64 \
+    --dropout 0.6 \
+    --lr 0.01 \
+    --weight_decay 0.0001 \
+    --ap 1000
+python test_ALL.py --dataset bail \
+    --model sage \
+    --seed 4 \
+    --hidden 128 \
+    --dropout 0.5 \
+    --lr 0.0001 \
+    --weight_decay 0.0001 \
+    --ap 200
+python test_ALL.py --dataset bail \
+    --model sage \
+    --seed 5 \
+    --hidden 128 \
+    --dropout 0.2 \
+    --lr 0.0001 \
+    --weight_decay 0.01 \
+    --ap 200

@@ -1,0 +1,7 @@
+Metric,Dataset,Model,Mean ± Variance
+ACC_10,bail,gat,94.630218 ± 0.011794
+SP_10,bail,gat,7.493639 ± 0.011751
+EO_10,bail,gat,2.351927 ± 0.032337
+ACC_100,bail,gat,94.473405 ± 0.018199
+SP_100,bail,gat,6.805403 ± 0.015205
+EO_100,bail,gat,1.988630 ± 0.031457

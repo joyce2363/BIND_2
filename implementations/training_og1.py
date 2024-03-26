@@ -33,7 +33,7 @@ parser.add_argument('--epochs', type=int, default=1000,
 parser.add_argument('--dataset', type=str, default="income", help='One dataset from income, bail, pokec1, and pokec2.')
 parser.add_argument('--lr', type=float, default=0.001)
 parser.add_argument('--weight_decay', type=float, default=0.0001)
-parser.add_argument('--num_hidden', type=int, default=16)
+parser.add_argument('--hidden', type=int, default=16)
 parser.add_argument('--dropout', type=float, default=0.5)
 parser.add_argument('--ap', type=float, default=25)
 args = parser.parse_args()
@@ -54,7 +54,7 @@ def part1(dataset,
           epochs,
           model, pseed):
     dataset_name = dataset
-    args.num_hidden = pnum_hidden
+    args.hidden = pnum_hidden
     args.lr = plr
     args.dropout = pdropout
     args.weight_decay = pweight_decay
@@ -86,11 +86,11 @@ def part1(dataset,
 
     edge_index = convert.from_scipy_sparse_matrix(adj)[0]
     if args.model == "gcn": 
-        model = GCN(nfeat=features.shape[1], nhid=args.num_hidden, nclass=labels.unique().shape[0]-1, dropout=args.dropout)
+        model = GCN(nfeat=features.shape[1], nhid=args.hidden, nclass=labels.unique().shape[0]-1, dropout=args.dropout)
     elif args.model == "gat":
-        model = GAT(nfeat=features.shape[1], nhid=args.num_hidden, nclass=labels.unique().shape[0]-1, dropout=args.dropout)
+        model = GAT(nfeat=features.shape[1], nhid=args.hidden, nclass=labels.unique().shape[0]-1, dropout=args.dropout)
     elif args.model == "sage": 
-        model = SAGE(nfeat=features.shape[1], nhid=args.num_hidden, nclass=labels.unique().shape[0]-1, dropout=args.dropout)
+        model = SAGE(nfeat=features.shape[1], nhid=args.hidden, nclass=labels.unique().shape[0]-1, dropout=args.dropout)
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 
     if args.cuda:
@@ -181,6 +181,6 @@ def part1(dataset,
 
     ending = time.time()
     print("Time:", ending - starting, "s")
-    model = torch.load(str(args.model) + '_' + dataset_name + '_' + str(args.seed) + '_egg' + '.pth')
+    model = torch.load(str(args.model) + '_' + dataset_name + '_' + str(args.seed) + '.pth')
     print("ERROR FIX: ", model)
     tst()

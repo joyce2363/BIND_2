@@ -41,7 +41,7 @@ def part4(dataset_name, seed):
     if dataset_name == 'income':
         final_sets = np.load('1final_sets_' + str(args.model) + dataset_name + str(seed) + '.npy', allow_pickle=True).item()
     elif dataset_name == 'bail':
-        final_sets = np.load('1final_sets_' + str(args.model) + dataset_name + str(seed) + '_egg' + '.npy', allow_pickle=True).item()
+        final_sets = np.load('1final_sets_' + str(args.model) + dataset_name + str(seed) + '.npy', allow_pickle=True).item()
     elif dataset_name == 'pokec1':
         final_sets = np.load('1final_sets_' + str(args.model) + dataset_name + str(seed) + '.npy', allow_pickle=True).item()
     elif dataset_name == 'pokec2':
@@ -71,5 +71,6 @@ def part4(dataset_name, seed):
         SP_100 = final_sets['sp_records'][budget]
         print("Equal Opportunity:", final_sets['eo_records'][budget])
         EO_100 = final_sets['eo_records'][budget]
-        return ACC_100
+        return ACC_10, SP_10, EO_10, ACC_100, SP_100, EO_100
+    
     return 0

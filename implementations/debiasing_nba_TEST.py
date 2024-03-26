@@ -60,4 +60,6 @@ def part4c(dataset_name, seed):
         SP_100 = final_sets['sp_records'][budget]
         print("Equal Opportunity:", final_sets['eo_records'][budget])
         EO_100 = final_sets['eo_records'][budget]
-    return ACC_10, SP_10, EO_10, ACC_100, SP_100, EO_100
+        return ACC_10, SP_10, EO_10, ACC_100, SP_100, EO_100
+    else: 
+        return ACC_10, SP_10, EO_10, 0, 0, 0

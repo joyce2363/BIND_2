@@ -36,7 +36,7 @@ parser.add_argument('--epochs', type=int, default=130,
 parser.add_argument('--dataset', type=str, default="income", help='One dataset from income, bail, pokec1, and pokec2.')
 parser.add_argument('--lr', type=float, default=0.001)
 parser.add_argument('--weight_decay', type=float, default=0.0001)
-parser.add_argument('--num_hidden', type=int, default=16)
+parser.add_argument('--hidden', type=int, default=16)
 parser.add_argument('--dropout', type=float, default=0.5)
 parser.add_argument('--ap', type=float, default=25)
 
@@ -53,7 +53,7 @@ def part3(dataset, model,
     print(open_factor)
     args.lr = plr
     args.weight_decay = pweight_decay
-    args.num_hidden = pnum_hidden
+    args.hidden = pnum_hidden
     args.dropout = pdropout
     args.epoch = 30
     dataset_name = dataset
@@ -419,7 +419,7 @@ def part3(dataset, model,
 
         adj = del_adj(harmful_flags, dataset_name)
         edge_index = convert.from_scipy_sparse_matrix(adj)[0]
-        model = torch.load(str(args.model) + '_' + dataset_name + '_' + str(args.seed) + '_egg' + '.pth')
+        model = torch.load(str(args.model) + '_' + dataset_name + '_' + str(args.seed) + '.pth')
 
         # model = torch.load(str(args.model) + '_' +  dataset_name + '_' + str(args.seed) + '.pth')
         optimizer = optim.Adam(model.parameters(),
